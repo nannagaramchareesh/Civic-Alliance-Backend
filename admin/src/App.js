@@ -5,7 +5,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Login from "./pages/Login";
 
-export const backendUrl = process.env.REACT_APP_BACKEND_URL;
+export const backendUrl = process.env.REACT_APP_API_URL;
 
 const App = () => {
   return (
