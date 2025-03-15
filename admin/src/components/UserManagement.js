@@ -12,6 +12,7 @@ const UserManagement = () => {
       const response = await axios.get(`${backendUrl}/api/admin/getallusers`);
       if (response.data.success) {
         setUsers(response.data.approvedUsers);
+        console.log(response.data.approvedUsers)
       } else {
         toast.error("Failed to fetch users");
       }
@@ -19,9 +20,9 @@ const UserManagement = () => {
       toast.error("Error fetching users");
     }
   };
-  useEffect(()=>{
+  useEffect(() => {
     fetchUsers()
-  },[])
+  }, [])
   // Handle role change
   // const handleRoleChange = (id, newRole) => {
   //   setUsers(users.map(user => 
@@ -29,12 +30,12 @@ const UserManagement = () => {
   //   ));
   // };
 
-  const handleDelete =async ()=>{
-    const response = await axios.delete(`${backendUrl}/api/admin/deleteUsers`,{headers:{"auth-token":localStorage.getItem('token')}})
-    if(response.data.success){
+  const handleDelete = async () => {
+    const response = await axios.delete(`${backendUrl}/api/admin/deleteUsers`, { headers: { "auth-token": localStorage.getItem('token') } })
+    if (response.data.success) {
       toast.success(response.data.message)
     }
-    else{
+    else {
       toast.error(response.data.message)
     }
   }
@@ -57,6 +58,27 @@ const UserManagement = () => {
       toast.error("Error deactivating user");
     }
   };
+
+  //hadle activate
+  const handleActivate = async (id) => {
+    try {
+      const response = await axios.post(`${backendUrl}/api/admin/changeStatus`, {
+        userId: id,
+        status: "Approved",
+      });
+
+      if (response.data.success) {
+        toast.success("User activated successfully!");
+        fetchUsers();
+      } else {
+        toast.error("Failed to activate user");
+      }
+    } catch (error) {
+      toast.error("Error activating user");
+    }
+  };
+
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg">
       <h2 className="text-3xl font-bold mb-6">User Management</h2>
@@ -89,14 +111,45 @@ const UserManagement = () => {
                 >
                   Make User
                 </button> */}
-                {user.status !== "Rejected" && (
-                  <button
-                    className="bg-red-500 text-white px-4 py-1 rounded-md hover:bg-red-600 transition"
-                    onClick={() => handleDeactivate(user._id)}
-                  >
-                    Deactivate
-                  </button>
+                {/* {["Approved", "Rejected"].includes(user.status) && (
+                  <>
+                    <button
+                      className="bg-red-500 text-white px-4 py-1 rounded-md hover:bg-red-600 transition"
+                      onClick={() => handleDeactivate(user._id)}
+                    >
+                      Deactivate
+                    </button>
+
+                    <button
+                      className="bg-green-500 text-white px-4 py-1 rounded-md hover:bg-green-600 transition ml-2"
+                      onClick={() => handleActivate(user._id)}
+                    >
+                      Activate
+                    </button>
+                  </>
+                )} */}
+                {["Approved", "Rejected"].includes(user.status) && (
+                  <>
+                    {user.status === "Approved" && (
+                      <button
+                        className="bg-red-500 text-white px-4 py-1 rounded-md hover:bg-red-600 transition"
+                        onClick={() => handleDeactivate(user._id)}
+                      >
+                        Deactivate
+                      </button>
+                    )}
+
+                    {user.status === "Rejected" && (
+                      <button
+                        className="bg-green-500 text-white px-4 py-1 rounded-md hover:bg-green-600 transition ml-2"
+                        onClick={() => handleActivate(user._id)}
+                      >
+                        Activate
+                      </button>
+                    )}
+                  </>
                 )}
+
               </td>
             </tr>
           ))}
