@@ -10,9 +10,9 @@ const UserManagement = () => {
     console.log("Hit")
     try {
       const response = await axios.get(`${backendUrl}/api/admin/getallusers`);
+      console.log(response.data)
       if (response.data.success) {
-        setUsers(response.data.approvedUsers);
-        console.log(response.data.approvedUsers)
+        setUsers(response.data.users);
       } else {
         toast.error("Failed to fetch users");
       }

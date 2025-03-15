@@ -91,7 +91,7 @@ const deleteAllUsers = async(req,res)=>{
 const getApprovedUsers = async (req, res) => {
     try {
         const users = await User.find({ status: { $in: ["Approved", "Rejected"] } });
-        res.json({ success: true, approvedUsers });
+        res.json({ success: true, users });
     } catch (error) {
         res.json({ success: false, message: "Error fetching approved users" });
     }
