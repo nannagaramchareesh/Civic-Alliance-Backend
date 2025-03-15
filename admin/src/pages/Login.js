@@ -6,6 +6,7 @@ import {backendUrl} from '../App'
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 export default function AdminLogin() {
+  console.log(backendUrl)
   const navigate = useNavigate()
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

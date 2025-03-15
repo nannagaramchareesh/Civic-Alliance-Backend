@@ -88,6 +88,32 @@ const deleteAllUsers = async(req,res)=>{
     }
 }
 
+const getApprovedUsers = async (req, res) => {
+    try {
+        const approvedUsers = await User.find({ status: "Approved" });
+        res.json({ success: true, approvedUsers });
+    } catch (error) {
+        res.json({ success: false, message: "Error fetching approved users" });
+    }
+};
 
 
-export { getPendingRequests, updateStatus ,getDashboardStats,authenticateAdmin,deleteAllUsers};
+//deactivate
+const changeStatus = async (req, res) => {
+    try {
+        const { userId } = req.body;
+
+        const user = await User.findByIdAndUpdate(userId, { status: "Rejected" }, { new: true });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        res.json({ success: true, message: "User deactivated successfully!", user });
+    } catch (error) {
+        console.error("Error changing user status:", error.message);
+        res.json({ success: false, message: "Error changing user status" });
+    }
+}
+
+export { getPendingRequests, updateStatus ,getDashboardStats,authenticateAdmin,deleteAllUsers,getApprovedUsers,changeStatus};

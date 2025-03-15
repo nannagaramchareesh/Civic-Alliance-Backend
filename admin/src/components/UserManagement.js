@@ -1,22 +1,33 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Button from "./Button";
 import axios from "axios";
 import { backendUrl } from "../App";
 import { toast } from "react-toastify";
 const UserManagement = () => {
-  // Dummy user data
-  const [users, setUsers] = useState([
-    { id: 1, name: "John Doe", department: "Urban Planning", role: "Admin" },
-    { id: 2, name: "Jane Smith", department: "Infrastructure", role: "User" },
-    { id: 3, name: "Michael Johnson", department: "Water Supply", role: "User" },
-  ]);
-
-  // Handle role change
-  const handleRoleChange = (id, newRole) => {
-    setUsers(users.map(user => 
-      user.id === id ? { ...user, role: newRole } : user
-    ));
+  const [users, setUsers] = useState([]);
+  // Fetch Users from Backend
+  const fetchUsers = async () => {
+    console.log("Hit")
+    try {
+      const response = await axios.get(`${backendUrl}/api/admin/getallusers`);
+      if (response.data.success) {
+        setUsers(response.data.approvedUsers);
+      } else {
+        toast.error("Failed to fetch users");
+      }
+    } catch (error) {
+      toast.error("Error fetching users");
+    }
   };
+  useEffect(()=>{
+    fetchUsers()
+  },[])
+  // Handle role change
+  // const handleRoleChange = (id, newRole) => {
+  //   setUsers(users.map(user => 
+  //     user.id === id ? { ...user, role: newRole } : user
+  //   ));
+  // };
 
   const handleDelete =async ()=>{
     const response = await axios.delete(`${backendUrl}/api/admin/deleteUsers`,{headers:{"auth-token":localStorage.getItem('token')}})
@@ -28,6 +39,24 @@ const UserManagement = () => {
     }
   }
 
+  // Deactivate User (Set Status to Rejected)
+  const handleDeactivate = async (id) => {
+    try {
+      const response = await axios.post(`${backendUrl}/api/admin/changeStatus`, {
+        userId: id,
+        status: "Rejected",
+      });
+
+      if (response.data.success) {
+        toast.success("User deactivated successfully!");
+        fetchUsers();
+      } else {
+        toast.error("Failed to deactivate user");
+      }
+    } catch (error) {
+      toast.error("Error deactivating user");
+    }
+  };
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg">
       <h2 className="text-3xl font-bold mb-6">User Management</h2>
@@ -43,12 +72,12 @@ const UserManagement = () => {
         </thead>
         <tbody>
           {users.map(user => (
-            <tr key={user.id} className="border-b">
+            <tr key={user._id} className="border-b">
               <td className="py-2 px-4">{user.name}</td>
               <td className="py-2 px-4">{user.department}</td>
               <td className="py-2 px-4">{user.role}</td>
               <td className="py-2 px-4 text-center">
-                <button
+                {/* <button
                   className="bg-blue-500 text-white px-4 py-1 rounded-md mr-2 hover:bg-blue-600 transition"
                   onClick={() => handleRoleChange(user.id, "Admin")}
                 >
@@ -59,7 +88,15 @@ const UserManagement = () => {
                   onClick={() => handleRoleChange(user.id, "User")}
                 >
                   Make User
-                </button>
+                </button> */}
+                {user.status !== "Rejected" && (
+                  <button
+                    className="bg-red-500 text-white px-4 py-1 rounded-md hover:bg-red-600 transition"
+                    onClick={() => handleDeactivate(user._id)}
+                  >
+                    Deactivate
+                  </button>
+                )}
               </td>
             </tr>
           ))}
