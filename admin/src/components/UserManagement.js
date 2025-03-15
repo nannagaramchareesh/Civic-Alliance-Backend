@@ -3,14 +3,14 @@ import Button from "./Button";
 import axios from "axios";
 import { backendUrl } from "../App";
 import { toast } from "react-toastify";
+
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
+
   // Fetch Users from Backend
   const fetchUsers = async () => {
-    console.log("Hit")
     try {
       const response = await axios.get(`${backendUrl}/api/admin/getallusers`);
-      console.log(response.data)
       if (response.data.success) {
         setUsers(response.data.users);
       } else {
@@ -20,142 +20,112 @@ const UserManagement = () => {
       toast.error("Error fetching users");
     }
   };
+
   useEffect(() => {
-    fetchUsers()
-  }, [])
-  // Handle role change
-  // const handleRoleChange = (id, newRole) => {
-  //   setUsers(users.map(user => 
-  //     user.id === id ? { ...user, role: newRole } : user
-  //   ));
-  // };
+    fetchUsers();
+  }, []);
 
+  // Handle User Status Change
+  const handleStatusChange = async (id, status) => {
+    try {
+      const response = await axios.post(`${backendUrl}/api/admin/changeStatus`, {
+        userId: id,
+        status,
+      });
+
+      if (response.data.success) {
+        toast.success(`User ${status==="Approved"?"Activated":"Deactivated"} successfully!`);
+        fetchUsers();
+      } else {
+        if(status === "Approved"){
+          toast.error("Error Activating the user");
+        }
+        else{
+          toast.error("Error Deactivating the user");
+        }
+      }
+    } catch (error) {
+      toast.error(`Error ${status.toLowerCase()} user`);
+    }
+  };
+
+  // Handle Delete All Users
   const handleDelete = async () => {
-    const response = await axios.delete(`${backendUrl}/api/admin/deleteUsers`, { headers: { "auth-token": localStorage.getItem('token') } })
-    if (response.data.success) {
-      toast.success(response.data.message)
-    }
-    else {
-      toast.error(response.data.message)
-    }
-  }
-
-  // Deactivate User (Set Status to Rejected)
-  const handleDeactivate = async (id) => {
     try {
-      const response = await axios.post(`${backendUrl}/api/admin/changeStatus`, {
-        userId: id,
-        status: "Rejected",
+      const response = await axios.delete(`${backendUrl}/api/admin/deleteUsers`, {
+        headers: { "auth-token": localStorage.getItem("token") },
       });
 
       if (response.data.success) {
-        toast.success("User deactivated successfully!");
+        toast.success(response.data.message);
         fetchUsers();
       } else {
-        toast.error("Failed to deactivate user");
+        toast.error(response.data.message);
       }
     } catch (error) {
-      toast.error("Error deactivating user");
+      toast.error("Error deleting users");
     }
   };
-
-  //hadle activate
-  const handleActivate = async (id) => {
-    try {
-      const response = await axios.post(`${backendUrl}/api/admin/changeStatus`, {
-        userId: id,
-        status: "Approved",
-      });
-
-      if (response.data.success) {
-        toast.success("User activated successfully!");
-        fetchUsers();
-      } else {
-        toast.error("Failed to activate user");
-      }
-    } catch (error) {
-      toast.error("Error activating user");
-    }
-  };
-
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg">
-      <h2 className="text-3xl font-bold mb-6">User Management</h2>
+      <h2 className="text-3xl font-bold mb-6 text-gray-800">User Management</h2>
 
       <table className="w-full border border-gray-200">
         <thead>
-          <tr className="bg-gray-100">
-            <th className="py-2 px-4 border-b text-left">Name</th>
-            <th className="py-2 px-4 border-b text-left">Department</th>
-            <th className="py-2 px-4 border-b text-left">Role</th>
-            <th className="py-2 px-4 border-b text-center">Actions</th>
+          <tr className="bg-gray-100 text-gray-700">
+            <th className="py-3 px-4 border-b text-left">Name</th>
+            <th className="py-3 px-4 border-b text-left">Department</th>
+            <th className="py-3 px-4 border-b text-left">Role</th>
+            <th className="py-3 px-4 border-b text-left">Status</th>
+            <th className="py-3 px-4 border-b text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
           {users.map(user => (
             <tr key={user._id} className="border-b">
-              <td className="py-2 px-4">{user.name}</td>
-              <td className="py-2 px-4">{user.department}</td>
-              <td className="py-2 px-4">{user.role}</td>
-              <td className="py-2 px-4 text-center">
-                {/* <button
-                  className="bg-blue-500 text-white px-4 py-1 rounded-md mr-2 hover:bg-blue-600 transition"
-                  onClick={() => handleRoleChange(user.id, "Admin")}
+              <td className="py-3 px-4">{user.name}</td>
+              <td className="py-3 px-4">{user.department}</td>
+              <td className="py-3 px-4">{user.role}</td>
+              <td
+                className={`py-3 px-4 font-bold ${
+                  user.status === "Approved" ? "text-green-500" : "text-red-500"
+                }`}
+              >
+                {user.status}
+              </td>
+              <td className="py-3 px-4 text-center flex gap-2 justify-center">
+                <button
+                  className={`px-4 py-2 rounded-md text-white font-semibold transition ${
+                    user.status === "Approved"
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-green-500 hover:bg-green-600"
+                  }`}
+                  onClick={() => handleStatusChange(user._id, "Approved")}
+                  disabled={user.status === "Approved"}
                 >
-                  Make Admin
+                  Activate
                 </button>
                 <button
-                  className="bg-gray-500 text-white px-4 py-1 rounded-md hover:bg-gray-600 transition"
-                  onClick={() => handleRoleChange(user.id, "User")}
+                  className={`px-4 py-2 rounded-md text-white font-semibold transition ${
+                    user.status === "Rejected"
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-red-500 hover:bg-red-600"
+                  }`}
+                  onClick={() => handleStatusChange(user._id, "Rejected")}
+                  disabled={user.status === "Rejected"}
                 >
-                  Make User
-                </button> */}
-                {/* {["Approved", "Rejected"].includes(user.status) && (
-                  <>
-                    <button
-                      className="bg-red-500 text-white px-4 py-1 rounded-md hover:bg-red-600 transition"
-                      onClick={() => handleDeactivate(user._id)}
-                    >
-                      Deactivate
-                    </button>
-
-                    <button
-                      className="bg-green-500 text-white px-4 py-1 rounded-md hover:bg-green-600 transition ml-2"
-                      onClick={() => handleActivate(user._id)}
-                    >
-                      Activate
-                    </button>
-                  </>
-                )} */}
-                {["Approved", "Rejected"].includes(user.status) && (
-                  <>
-                    {user.status === "Approved" && (
-                      <button
-                        className="bg-red-500 text-white px-4 py-1 rounded-md hover:bg-red-600 transition"
-                        onClick={() => handleDeactivate(user._id)}
-                      >
-                        Deactivate
-                      </button>
-                    )}
-
-                    {user.status === "Rejected" && (
-                      <button
-                        className="bg-green-500 text-white px-4 py-1 rounded-md hover:bg-green-600 transition ml-2"
-                        onClick={() => handleActivate(user._id)}
-                      >
-                        Activate
-                      </button>
-                    )}
-                  </>
-                )}
-
+                  Deactivate
+                </button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      <Button className='w-full mt-10' onClick={handleDelete}>Delete All Users</Button>
+
+      <Button className="w-full mt-10" onClick={handleDelete}>
+        Delete All Users
+      </Button>
     </div>
   );
 };

@@ -102,14 +102,14 @@ const getApprovedUsers = async (req, res) => {
 const changeStatus = async (req, res) => {
     try {
         const { userId } = req.body;
-
-        const user = await User.findByIdAndUpdate(userId, { status: "Rejected" }, { new: true });
+        const {status} = req.body;
+        const user = await User.findByIdAndUpdate(userId, { status: status }, { new: true });
 
         if (!user) {
-            return res.status(404).json({ success: false, message: "User not found" });
+            return res.json({ success: false, message: "User not found" });
         }
 
-        res.json({ success: true, message: "User deactivated successfully!", user });
+        res.json({ success: true, user });
     } catch (error) {
         console.error("Error changing user status:", error.message);
         res.json({ success: false, message: "Error changing user status" });
