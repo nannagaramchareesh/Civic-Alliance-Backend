@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import User from '../models/user.js';
 import validator from 'validator';
 import jwt from 'jsonwebtoken';
+import Project from '../models/Project.js';
 const departmentHeadSignup = async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -65,4 +66,25 @@ const departmentHeadLogin = async (req, res) => {
     }
 }
 
-export { departmentHeadSignup, departmentHeadLogin };
+
+const addProject=async(req,res)=>{
+    try{
+        const {projectName,department,location,description,startDate,endDate,resourcesNeeded,interDepartmental}=req.body;
+        const id=req.user._id;
+        const project = await Project.create({projectName,department,location,description,startDate,endDate,resourcesNeeded,interDepartmental,createdBy:id});
+        res.json({success:true,project,message:"Project Added Successfully"});
+    }
+    catch (error) {
+        res.json({ success: false, message: error.message })
+    }    
+}
+const viewProject=async(req,res)=>{
+    try {
+        const projects=await Project.find({});
+        res.json({success:true,projects})
+    } catch (error) {
+        res.json({ success: false, message: error.message })        
+    }
+}
+
+export { departmentHeadSignup, departmentHeadLogin ,addProject,viewProject};

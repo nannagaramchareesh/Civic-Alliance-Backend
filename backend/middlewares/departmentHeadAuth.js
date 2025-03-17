@@ -4,7 +4,7 @@ import User from '../models/user.js';
 const departmentHeadAuth = async (req, res, next) => {
     try {
         const token = req.headers["auth-token"];
-
+        console.log(token)
         if (!token) {
             return json({ success: false, message: "Not Authorized" });
         }
