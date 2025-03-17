@@ -59,7 +59,7 @@ const departmentHeadLogin = async (req, res) => {
         // Generate JWT token
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
 
-        res.json({ success: true, token });
+        res.json({ success: true, token ,user});
     } catch (error) {
         res.json({ success: false, message: error.message })
     }

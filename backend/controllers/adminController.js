@@ -19,7 +19,7 @@ const updateStatus = async (req, res) => {
         const user = await User.findByIdAndUpdate(userId, { status }, { new: true });
 
         if (!user) {
-            return res.status(404).json({ success: false, message: "User not found" });
+            return res.json({ success: false, message: "User not found" });
         }
 
         // Email Details
@@ -108,7 +108,16 @@ const changeStatus = async (req, res) => {
         if (!user) {
             return res.json({ success: false, message: "User not found" });
         }
+        const emailSubject =
+            status === "Approved"
+                ? "🎉 Your Department Head Account Has Been Activated!"
+                : "🚫 Your Department Head Account had been Deactivated";
 
+        const emailBody =
+            status === "Approved"
+            ? `Dear ${user.name},\n\nCongratulations! Your Account has been Activated.\n\nYou can now log in here: ${process.env.FRONTEND_URL}/login.\n\nThank you.`
+            : `Dear ${user.name},\n\nWe regret to inform you that your Account has been Deactivated. For more details, please contact support.\n\nThank you.`;
+        await sendMail(user.email, emailSubject, emailBody);
         res.json({ success: true, user });
     } catch (error) {
         console.error("Error changing user status:", error.message);
