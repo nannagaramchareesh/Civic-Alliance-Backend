@@ -3,6 +3,7 @@ import User from '../models/user.js';
 import validator from 'validator';
 import jwt from 'jsonwebtoken';
 import Project from '../models/Project.js';
+import Officer from '../models/Officer.js';
 const departmentHeadSignup = async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -59,7 +60,6 @@ const departmentHeadLogin = async (req, res) => {
 
         // Generate JWT token
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-
         res.json({ success: true, token ,user});
     } catch (error) {
         res.json({ success: false, message: error.message })
@@ -87,4 +87,15 @@ const viewProject=async(req,res)=>{
     }
 }
 
-export { departmentHeadSignup, departmentHeadLogin ,addProject,viewProject};
+const addOfficer=async(req,res)=>{
+    try {
+        // const data=await Officer.create({req.body})
+        const {name,email,password}=req.body;
+        const data=await Officer.create({name,email,password});
+        res.json({success:true,message:"officer added successfully"})
+    } catch (error) {
+        res.json({success:false,message:error.message})        
+    }
+}
+
+export { departmentHeadSignup, departmentHeadLogin ,addProject,viewProject,addOfficer};
