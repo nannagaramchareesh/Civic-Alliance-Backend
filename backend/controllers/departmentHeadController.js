@@ -4,6 +4,8 @@ import validator from 'validator';
 import jwt from 'jsonwebtoken';
 import Project from '../models/Project.js';
 import Officer from '../models/Officer.js';
+import sendMail from '../config/mailer.js';
+
 const departmentHeadSignup = async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -25,7 +27,7 @@ const departmentHeadSignup = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         // Save to database with status "Pending"
-        const newUser = User.create({ name, email, password: hashedPassword, department, status: "Pending" });
+        const newUser = await User.create({ name, email, password: hashedPassword, department, status: "Pending" });
 
         res.json({ success: true, message: "Signup request sent for approval" });
     } catch (error) {
@@ -60,42 +62,54 @@ const departmentHeadLogin = async (req, res) => {
 
         // Generate JWT token
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-        res.json({ success: true, token ,user});
+        res.json({ success: true, token, user });
     } catch (error) {
         res.json({ success: false, message: error.message })
     }
 }
 
 
-const addProject=async(req,res)=>{
-    try{
-        const {projectName,department,location,description,startDate,endDate,resourcesNeeded,interDepartmental}=req.body;
-        const id=req.user._id;
-        const project = await Project.create({projectName,department,location,description,startDate,endDate,resourcesNeeded,interDepartmental,createdBy:id});
-        res.json({success:true,project,message:"Project Added Successfully"});
+const addProject = async (req, res) => {
+    try {
+        const { projectName, department, location, description, startDate, endDate, resourcesNeeded, interDepartmental } = req.body;
+        const id = req.user._id;
+        const project = await Project.create({ projectName, department, location, description, startDate, endDate, resourcesNeeded, interDepartmental, createdBy: id });
+        res.json({ success: true, project, message: "Project Added Successfully" });
     }
     catch (error) {
         res.json({ success: false, message: error.message })
-    }    
+    }
 }
-const viewProject=async(req,res)=>{
+const viewProject = async (req, res) => {
     try {
-        const projects=await Project.find({});
-        res.json({success:true,projects})
+        const projects = await Project.find({});
+        res.json({ success: true, projects })
     } catch (error) {
-        res.json({ success: false, message: error.message })        
+        res.json({ success: false, message: error.message })
     }
 }
 
-const addOfficer=async(req,res)=>{
+const addOfficer = async (req, res) => {
+
+    console.log("Hitting add officer")
     try {
         // const data=await Officer.create({req.body})
-        const {name,email,password}=req.body;
-        const data=await Officer.create({name,email,password});
-        res.json({success:true,message:"officer added successfully"})
+        const { officerData } = req.body;
+        const { name, email, password } = officerData;
+        const check = await Officer.findOne({ email });
+        if (check) return res.json({ success: false, message: "Email already exists" })
+        console.log(name)
+        const data = await Officer.create({ name, email, password });
+        // const emailSubject = "👮 Your Officer Account Has Been Created!";
+
+        // const emailBody = `Dear ${name},\n\nWelcome to the system! Your Officer account has been successfully created.\n\n🔹 **Login Details**:\n📧 Email: ${email}\n🔑 Password: ${password}\n\n🚀 You can log in here: ${process.env.FRONTEND_URL}/login\n\nPlease change your password after logging in.\n\nBest Regards,\nAdmin Team`;
+
+        // await sendMail(email, emailSubject, emailBody);
+
+        res.json({ success: true, message: "officer added successfully" })
     } catch (error) {
-        res.json({success:false,message:error.message})        
+        res.json({ success: false, message: error.message })
     }
 }
 
-export { departmentHeadSignup, departmentHeadLogin ,addProject,viewProject,addOfficer};
+export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer };
