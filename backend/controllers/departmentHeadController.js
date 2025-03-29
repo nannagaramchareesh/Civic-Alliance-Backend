@@ -100,11 +100,11 @@ const addOfficer = async (req, res) => {
         if (check) return res.json({ success: false, message: "Email already exists" })
         console.log(name)
         const data = await Officer.create({ name, email, password });
-        // const emailSubject = "👮 Your Officer Account Has Been Created!";
+        const emailSubject = "👮 Your Officer Account Has Been Created!";
 
-        // const emailBody = `Dear ${name},\n\nWelcome to the system! Your Officer account has been successfully created.\n\n🔹 **Login Details**:\n📧 Email: ${email}\n🔑 Password: ${password}\n\n🚀 You can log in here: ${process.env.FRONTEND_URL}/login\n\nPlease change your password after logging in.\n\nBest Regards,\nAdmin Team`;
+        const emailBody = `Dear ${name},\n\nWelcome to the system! Your Officer account has been successfully created.\n\n🔹 **Login Details**:\n📧 Email: ${email}\n🔑 Password: ${password}\n\n🚀 You can log in here: ${process.env.FRONTEND_URL}/login\n\nPlease change your password after logging in.\n\nBest Regards,\nAdmin Team`;
 
-        // await sendMail(email, emailSubject, emailBody);
+        await sendMail(email, emailSubject, emailBody);
 
         res.json({ success: true, message: "officer added successfully" })
     } catch (error) {
@@ -112,4 +112,25 @@ const addOfficer = async (req, res) => {
     }
 }
 
-export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer };
+// Get project details by ID
+const getProjectDetails = async(req,res)=>{
+    try {
+        const { id } = req.params;
+    
+        // Find project by ID
+        const project = await Project.findById(id);
+    
+        if (!project) {
+          return res.status(404).json({ message: "Project not found" });
+        }
+    
+        res.json({ project });
+      } catch (error) {
+        console.error("Error fetching project details:", error);
+        res.status(500).json({ message: "Server Error" });
+      }
+}
+
+module.exports=router;
+
+export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer,getProjectDetails };
