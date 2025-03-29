@@ -131,6 +131,5 @@ const getProjectDetails = async(req,res)=>{
       }
 }
 
-module.exports=router;
 
 export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer,getProjectDetails };
