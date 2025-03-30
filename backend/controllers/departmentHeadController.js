@@ -35,53 +35,95 @@ const departmentHeadSignup = async (req, res) => {
     }
 };
 
+
+
 const departmentHeadLogin = async (req, res) => {
     try {
-        console.log("HERE")
         const { email, password } = req.body;
-        console.log(email, password);
-        const user = await User.findOne({ email });
+        console.log(email, password)
+        let user = await User.findOne({ email }); // Check if it's a Department Head
+        let role = "Department Head";
+        if (!user) {
+            user = await Officer.findOne({ email }); // If not found, check if it's an Officer
+            role = "Officer";
+        }
+
         if (!user) {
             return res.json({ success: false, message: "Invalid email or password" });
         }
-        // Check if user is approved
-        if (user.status === "Pending") {
+
+        // Check if Department Head is approved
+        if (role === "Department Head" && user.status === "Pending") {
             return res.json({ success: false, message: "Your account is not approved yet" });
         }
-
-        // Check if user is rejected
-        if (user.status === "Rejected") {
-            return res.json({ success: false, message: "Your account is Rejected" });
+        if (role === "Department Head" && user.status === "Rejected") {
+            return res.json({ success: false, message: "Your account is rejected" });
         }
 
-        // Verify password
+        // Verify Password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.json({ success: false, message: "Invalid email or password" });
         }
 
-        // Generate JWT token
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-        res.json({ success: true, token, user });
+        // Generate JWT token with user ID and role
+        const token = jwt.sign({ id: user._id, role }, process.env.JWT_SECRET);
+
+        res.json({ success: true, token, user, role });
     } catch (error) {
-        res.json({ success: false, message: error.message })
+        res.json({ success: false, message: error.message });
     }
-}
+};
+
+
 
 
 const addProject = async (req, res) => {
     try {
-        const { projectName, department, location, description, startDate, endDate, resourcesNeeded, interDepartmental } = req.body;
-        const id = req.user._id;
-        const project = await Project.create({ projectName, department, location, description, startDate, endDate, resourcesNeeded, interDepartmental, createdBy: id });
-        res.json({ success: true, project, message: "Project Added Successfully" });
-    }
-    catch (error) {
-        res.json({ success: false, message: error.message })
+        console.log("HELLO")
+        const { projectName, description, location, startDate, endDate, resourcesNeeded, collaboratingDepartments, department } = req.body;
+        // Validate required fields
+        if (!projectName || !description || !location || !startDate || !endDate) {
+
+            return res.json({ success: false, message: "All fields are required" });
+        }
+
+
+        // Prepare collaborating departments for request
+        const collaborationRequests = collaboratingDepartments.map((dept) => ({
+            name: dept.name,
+            startDate: new Date(dept.startDate),
+            endDate: new Date(dept.endDate),
+            status: "pending" // Default status is pending approval
+        }));
+
+        // Create new project
+        const newProject = new Project({
+            projectName,
+            description,
+            location,
+            startDate: startDate,
+            endDate: endDate,
+            department,
+            resourcesNeeded,
+            collaboratingDepartments: collaborationRequests, // Pending approvals
+            createdBy: req.user.id // Department Head's ID
+        });
+
+        // Save project
+        await newProject.save();
+
+
+        res.json({ success: true, message: "Project created successfully", project: newProject });
+
+    } catch (error) {
+        console.error(error);
+        res.json({ success: false, message: "Server Error" });
     }
 }
 const viewProject = async (req, res) => {
     try {
+        console.log(req.user)
         const projects = await Project.find({});
         res.json({ success: true, projects })
     } catch (error) {
@@ -99,7 +141,9 @@ const addOfficer = async (req, res) => {
         const check = await Officer.findOne({ email });
         if (check) return res.json({ success: false, message: "Email already exists" })
         console.log(name)
-        const data = await Officer.create({ name, email, password });
+        const salt = await bcrypt.genSalt(10)
+        const hashedPassword = await bcrypt.hash(password, salt);
+        const data = await Officer.create({ name, email, hashedPassword });
         const emailSubject = "👮 Your Officer Account Has Been Created!";
 
         const emailBody = `Dear ${name},\n\nWelcome to the system! Your Officer account has been successfully created.\n\n🔹 **Login Details**:\n📧 Email: ${email}\n🔑 Password: ${password}\n\n🚀 You can log in here: ${process.env.FRONTEND_URL}/login\n\nPlease change your password after logging in.\n\nBest Regards,\nAdmin Team`;
@@ -113,23 +157,53 @@ const addOfficer = async (req, res) => {
 }
 
 // Get project details by ID
-const getProjectDetails = async(req,res)=>{
+const getProjectDetails = async (req, res) => {
     try {
         const { id } = req.params;
-    
+
         // Find project by ID
         const project = await Project.findById(id);
-    
+
         if (!project) {
-          return res.status(404).json({ message: "Project not found" });
+            return res.status(404).json({ message: "Project not found" });
         }
-    
+
         res.json({ project });
-      } catch (error) {
+    } catch (error) {
         console.error("Error fetching project details:", error);
         res.status(500).json({ message: "Server Error" });
-      }
+    }
+}
+
+const getCollaborationRequests = async (req, res) => {
+    try {
+        const departmentName = req.user.department; // Assuming department is stored in token
+
+        // Find projects where this department is requested for collaboration
+        const projects = await Project.find({
+            "collaboratingDepartments.name": departmentName,
+            "collaboratingDepartments.status": "pending",
+        });
+
+        // Extract relevant collaboration requests
+        const requests = projects.flatMap((project) =>
+            project.collaboratingDepartments
+                .filter((dept) => dept.name === departmentName && dept.status === "pending")
+                .map((dept) => ({
+                    projectId: project._id,
+                    projectName: project.projectName,
+                    requestedBy: project.department,
+                    startDate: dept.startDate,
+                    endDate: dept.endDate,
+                    status: dept.status,
+                }))
+        );
+
+        res.json({ success: true, requests });
+    } catch (err) {
+        res.json({ success: false, message: "Server Error" });
+    }
 }
 
 
-export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer,getProjectDetails };
+export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer, getProjectDetails ,getCollaborationRequests};
