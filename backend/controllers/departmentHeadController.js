@@ -81,7 +81,7 @@ const departmentHeadLogin = async (req, res) => {
 
 const addProject = async (req, res) => {
     try {
-        console.log("HELLO");
+        console.log("Received req body",req.body);
 
         const { projectName, description, location, startDate, endDate, resourcesNeeded, collaboratingDepartments, department, priority } = req.body;
 
@@ -92,7 +92,8 @@ const addProject = async (req, res) => {
 
         // Fetch all existing projects to compare priorities
         const existingProjects = await Project.find({});
-        
+        console.log(existingProjects)
+        // console.log("hello")
         // Check if any existing project has a lower priority
         const lowerPriorityExists = existingProjects.some(proj => proj.priority < priority);
         //checking priority
@@ -107,8 +108,9 @@ const addProject = async (req, res) => {
             endDate: new Date(dept.endDate),
             status: "pending" // Default status is pending approval
         }));
-        console.log(collaborationRequests)
+        // console.log(collaborationRequests)
         // Create new project
+        const priorityval=Number(priority)
         const newProject = new Project({
             projectName,
             description,
@@ -117,11 +119,11 @@ const addProject = async (req, res) => {
             endDate,
             department,
             resourcesNeeded,
-            priority, // Assigning priority to project
+            priority:priorityval, // Assigning priority to project
             collaborationRequests: collaborationRequests,
             createdBy: req.user.id // Department Head's ID
         });
-
+        // console.log(newProject)
         // Save project
         await newProject.save();
 

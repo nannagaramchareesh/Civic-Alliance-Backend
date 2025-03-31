@@ -8,6 +8,7 @@ const projectSchema = new mongoose.Schema({
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
   resourcesNeeded: { type: String },
+  priority: {type:Number,required:true},
   interDepartmental: { type: Boolean, default: false },
   collaborationRequests: [
     {
