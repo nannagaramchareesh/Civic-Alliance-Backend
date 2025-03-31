@@ -24,6 +24,6 @@ departmentHeadRouter.get('/projects/:id',departmentHeadAuth,getProjectDetails);
 departmentHeadRouter.get('/collaborationRequests',departmentHeadAuth,getCollaborationRequests);
 
 departmentHeadRouter.put('/projects/:projectId/collaboration',changeCollaborationRequestStatus);
-
+//viva
 departmentHeadRouter.get('/sentCollaborationRequests',departmentHeadAuth,getCollaborationRequestsByDepartment);
 export default departmentHeadRouter;
