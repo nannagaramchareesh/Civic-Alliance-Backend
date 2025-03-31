@@ -157,7 +157,7 @@ const addOfficer = async (req, res) => {
         const data = await Officer.create({ name, email, hashedPassword });
         const emailSubject = "👮 Your Officer Account Has Been Created!";
 
-        const emailBody = Dear ${name},\n\nWelcome to the system! Your Officer account has been successfully created.\n\n🔹 **Login Details**:\n📧 Email: ${email}\n🔑 Password: ${password}\n\n🚀 You can log in here: ${process.env.FRONTEND_URL}/login\n\nPlease change your password after logging in.\n\nBest Regards,\nAdmin Team;
+        const emailBody = `Dear ${name},\n\nWelcome to the system! Your Officer account has been successfully created.\n\n🔹 **Login Details**:\n📧 Email: ${email}\n🔑 Password: ${password}\n\n🚀 You can log in here: ${process.env.FRONTEND_URL}/login\n\nPlease change your password after logging in.\n\nBest Regards,\nAdmin Team`;
 
         await sendMail(email, emailSubject, emailBody);
 
