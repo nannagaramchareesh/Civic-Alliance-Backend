@@ -94,7 +94,7 @@ const addProject = async (req, res) => {
         
         // Check if any existing project has a lower priority
         const lowerPriorityExists = existingProjects.some(proj => proj.priority < priority);
-
+        //checking priority
         if (lowerPriorityExists) {
             return res.json({ success: false, message: "A lower-priority project already exists. Cannot proceed." });
         }
