@@ -272,5 +272,31 @@ const changeCollaborationRequestStatus = async (req, res) => {
     }
 }
 
+const getCollaborationRequestsByDepartment = async (req, res) => {
+    try {
+        console.log("HELLO sent")
+        const departmentName = req.user.department; // Fetching department from authenticated user
 
-export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer, getProjectDetails ,getCollaborationRequests,changeCollaborationRequestStatus};
+        // Find projects created by the department that have sent collaboration requests
+        const projects = await Project.find({ department: departmentName });
+
+        // Extract sent collaboration requests
+        const sentRequests = projects.flatMap((project) =>
+            project.collaborationRequests.map((req) => ({
+                projectId: project._id,
+                projectName: project.projectName,
+                departmentRequested: req.name,
+                requestDate: req.requestDate,
+                status: req.status,
+            }))
+        );
+
+        res.json({ success: true, requests: sentRequests });
+    } catch (err) {
+        console.error("Error fetching sent collaboration requests:", err);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+}
+
+
+export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer, getProjectDetails ,getCollaborationRequests,changeCollaborationRequestStatus,getCollaborationRequestsByDepartment};

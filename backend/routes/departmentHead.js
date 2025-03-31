@@ -8,6 +8,7 @@ import departmentHeadAuth from '../middlewares/departmentHeadAuth.js'
 import { getProjectDetails } from '../controllers/departmentHeadController.js';
 import { getCollaborationRequests } from '../controllers/departmentHeadController.js';
 import { changeCollaborationRequestStatus } from '../controllers/departmentHeadController.js';
+import { getCollaborationRequestsByDepartment } from '../controllers/departmentHeadController.js';
 const departmentHeadRouter = express.Router();
 departmentHeadRouter.post('/signup', departmentHeadSignup);
 departmentHeadRouter.post('/login',departmentHeadLogin);
@@ -23,4 +24,6 @@ departmentHeadRouter.get('/projects/:id',departmentHeadAuth,getProjectDetails);
 departmentHeadRouter.get('/collaborationRequests',departmentHeadAuth,getCollaborationRequests);
 
 departmentHeadRouter.put('/projects/:projectId/collaboration',changeCollaborationRequestStatus);
+
+departmentHeadRouter.get('/sentCollaborationRequests',departmentHeadAuth,getCollaborationRequestsByDepartment);
 export default departmentHeadRouter;
