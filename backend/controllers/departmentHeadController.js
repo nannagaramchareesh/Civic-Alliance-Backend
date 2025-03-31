@@ -80,14 +80,24 @@ const departmentHeadLogin = async (req, res) => {
 
 const addProject = async (req, res) => {
     try {
-        console.log("HELLO")
-        const { projectName, description, location, startDate, endDate, resourcesNeeded, collaboratingDepartments, department } = req.body;
+        console.log("HELLO");
+
+        const { projectName, description, location, startDate, endDate, resourcesNeeded, collaboratingDepartments, department, priority } = req.body;
+
         // Validate required fields
         if (!projectName || !description || !location || !startDate || !endDate) {
-
             return res.json({ success: false, message: "All fields are required" });
         }
 
+        // Fetch all existing projects to compare priorities
+        const existingProjects = await Project.find({});
+        
+        // Check if any existing project has a lower priority
+        const lowerPriorityExists = existingProjects.some(proj => proj.priority < priority);
+
+        if (lowerPriorityExists) {
+            return res.json({ success: false, message: "A lower-priority project already exists. Cannot proceed." });
+        }
 
         // Prepare collaborating departments for request
         const collaborationRequests = collaboratingDepartments.map((dept) => ({
@@ -102,17 +112,17 @@ const addProject = async (req, res) => {
             projectName,
             description,
             location,
-            startDate: startDate,
-            endDate: endDate,
+            startDate,
+            endDate,
             department,
             resourcesNeeded,
-            collaboratingDepartments: collaborationRequests, // Pending approvals
+            priority, // Assigning priority to project
+            collaboratingDepartments: collaborationRequests,
             createdBy: req.user.id // Department Head's ID
         });
 
         // Save project
         await newProject.save();
-
 
         res.json({ success: true, message: "Project created successfully", project: newProject });
 
@@ -120,7 +130,8 @@ const addProject = async (req, res) => {
         console.error(error);
         res.json({ success: false, message: "Server Error" });
     }
-}
+};
+
 const viewProject = async (req, res) => {
     try {
         console.log(req.user)
@@ -146,7 +157,7 @@ const addOfficer = async (req, res) => {
         const data = await Officer.create({ name, email, hashedPassword });
         const emailSubject = "👮 Your Officer Account Has Been Created!";
 
-        const emailBody = `Dear ${name},\n\nWelcome to the system! Your Officer account has been successfully created.\n\n🔹 **Login Details**:\n📧 Email: ${email}\n🔑 Password: ${password}\n\n🚀 You can log in here: ${process.env.FRONTEND_URL}/login\n\nPlease change your password after logging in.\n\nBest Regards,\nAdmin Team`;
+        const emailBody = Dear ${name},\n\nWelcome to the system! Your Officer account has been successfully created.\n\n🔹 **Login Details**:\n📧 Email: ${email}\n🔑 Password: ${password}\n\n🚀 You can log in here: ${process.env.FRONTEND_URL}/login\n\nPlease change your password after logging in.\n\nBest Regards,\nAdmin Team;
 
         await sendMail(email, emailSubject, emailBody);
 
