@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import Project from '../models/Project.js';
 import Officer from '../models/Officer.js';
 import sendMail from '../config/mailer.js';
+import { request } from 'express';
 
 const departmentHeadSignup = async (req, res) => {
     try {
@@ -106,7 +107,7 @@ const addProject = async (req, res) => {
             endDate: new Date(dept.endDate),
             status: "pending" // Default status is pending approval
         }));
-
+        console.log(collaborationRequests)
         // Create new project
         const newProject = new Project({
             projectName,
@@ -117,7 +118,7 @@ const addProject = async (req, res) => {
             department,
             resourcesNeeded,
             priority, // Assigning priority to project
-            collaboratingDepartments: collaborationRequests,
+            collaborationRequests: collaborationRequests,
             createdBy: req.user.id // Department Head's ID
         });
 
@@ -189,17 +190,18 @@ const getProjectDetails = async (req, res) => {
 const getCollaborationRequests = async (req, res) => {
     try {
         const departmentName = req.user.department; // Assuming department is stored in token
+        const { status } = req.query;  // Use req.query instead of req.body
 
-        // Find projects where this department is requested for collaboration
+        // Find projects where this department is requested for collaboration with the given status
         const projects = await Project.find({
-            "collaboratingDepartments.name": departmentName,
-            "collaboratingDepartments.status": "pending",
+            "collaborationRequests.name": departmentName,
+            "collaborationRequests.status": status,
         });
-
+        console.log(projects)
         // Extract relevant collaboration requests
         const requests = projects.flatMap((project) =>
-            project.collaboratingDepartments
-                .filter((dept) => dept.name === departmentName && dept.status === "pending")
+            project.collaborationRequests
+                .filter((dept) => dept.name === departmentName && dept.status === status)
                 .map((dept) => ({
                     projectId: project._id,
                     projectName: project.projectName,
@@ -212,9 +214,61 @@ const getCollaborationRequests = async (req, res) => {
 
         res.json({ success: true, requests });
     } catch (err) {
-        res.json({ success: false, message: "Server Error" });
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+};
+
+
+const changeCollaborationRequestStatus = async (req, res) => {
+    try {
+
+        console.log("HITTING changestatus")
+        const { projectId } = req.params;
+        const { departmentName, status } = req.body; // Use departmentName instead of departmentId
+
+        if (!departmentName || !status) {
+            return res.status(400).json({ error: "Missing required fields" });
+        }
+        console.log(projectId,departmentName)
+
+        console.log(departmentName)
+        const project = await Project.findById(projectId);
+        if (!project) {
+            return res.status(404).json({ error: "Project not found" });
+        }
+
+        // Find the request in the project's collaboratingDepartments array
+        const requestIndex = project.collaborationRequests.findIndex(
+            (req) => req.name === departmentName // Match by department name
+        );
+
+        console.log(requestIndex)
+        if (requestIndex === -1) {
+            return res.status(404).json({ error: "Collaboration request not found" });
+        }
+
+        // Update request status
+        project.collaborationRequests[requestIndex].status = status;
+
+        // If approved, add department to the project's `collaboratingDepartments` array
+        if (status === "approved") {
+            project.collaboratingDepartments.push({ 
+                name: departmentName, 
+                startDate: new Date(), 
+                endDate: null, 
+                status: "approved" 
+            });
+        }
+
+        await project.save();
+
+        res.json({ message: `Collaboration request ${status} successfully`, departmentName, project });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal server error" });
     }
 }
 
 
-export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer, getProjectDetails ,getCollaborationRequests};
+export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer, getProjectDetails ,getCollaborationRequests,changeCollaborationRequestStatus};
