@@ -274,6 +274,7 @@ const changeCollaborationRequestStatus = async (req, res) => {
 
 const getCollaborationRequestsByDepartment = async (req, res) => {
     try {
+        console.log("HELLO sent")
         const departmentName = req.user.department; // Fetching department from authenticated user
 
         // Find projects created by the department that have sent collaboration requests
