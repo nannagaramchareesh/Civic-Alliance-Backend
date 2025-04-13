@@ -274,23 +274,21 @@ const changeCollaborationRequestStatus = async (req, res) => {
 
 const getCollaborationRequestsByDepartment = async (req, res) => {
     try {
-        console.log("HELLO sent")
         const departmentName = req.user.department; // Fetching department from authenticated user
 
         // Find projects created by the department that have sent collaboration requests
         const projects = await Project.find({ department: departmentName });
-
         // Extract sent collaboration requests
         const sentRequests = projects.flatMap((project) =>
             project.collaborationRequests.map((req) => ({
                 projectId: project._id,
                 projectName: project.projectName,
                 departmentRequested: req.name,
-                requestDate: req.requestDate,
+                requestDate: project.createdAt,
                 status: req.status,
             }))
         );
-
+        console.log(sentRequests)
         res.json({ success: true, requests: sentRequests });
     } catch (err) {
         console.error("Error fetching sent collaboration requests:", err);
