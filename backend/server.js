@@ -33,6 +33,7 @@ import 'dotenv/config';
 import connectDB from './config/mongodb.js';
 import departmentHeadRouter from './routes/departmentHead.js';
 import adminRouter from './routes/admin.js';
+import Message from './models/Message.js';
 
 // Express App & HTTP Server
 const app = express();
@@ -55,24 +56,6 @@ connectDB();
 // Routes
 app.use('/api/admin', adminRouter);
 app.use('/api/departmentHead', departmentHeadRouter);
-
-// Chat Message Schema
-const messageSchema = new mongoose.Schema({
-  user: String,
-  message: String,
-  timestamp: { type: Date, default: Date.now },
-});
-const Message = mongoose.model('Message', messageSchema);
-
-// Get Messages REST Endpoint
-app.get('/api/messages', async (req, res) => {
-  try {
-    const messages = await Message.find().sort({ timestamp: 1 });
-    res.json(messages);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch messages' });
-  }
-});
 
 // Socket.IO Chat Events
 io.on('connection', (socket) => {

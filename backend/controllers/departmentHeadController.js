@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import Project from '../models/Project.js';
 import Officer from '../models/Officer.js';
 import sendMail from '../config/mailer.js';
+import Message from '../models/Message.js';
 import { request } from 'express';
 
 const departmentHeadSignup = async (req, res) => {
@@ -298,4 +299,45 @@ const getCollaborationRequestsByDepartment = async (req, res) => {
 }
 
 
-export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer, getProjectDetails ,getCollaborationRequests,changeCollaborationRequestStatus,getCollaborationRequestsByDepartment};
+const addMessage = async(req,res)=>{
+     try {
+        const messages = await Message.find().sort({ timestamp: 1 });
+        res.json(messages);
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch messages' });
+      }
+}
+
+const updateLikes = async (req, res) => {
+    const { type, user } = req.body; // 'like' | 'dislike' | 'neutral', and user name
+  
+    try {
+      const message = await Message.findById(req.params.id);
+      if (!message) return res.status(404).json({ error: 'Message not found' });
+  
+      const prevReaction = message.reactions.get(user); // Get previous reaction
+  
+      if (type === 'neutral') {
+        if (prevReaction === 'like') message.likes -= 1;
+        if (prevReaction === 'dislike') message.dislikes -= 1;
+        message.reactions.delete(user);
+      } else if (type !== prevReaction) {
+        if (prevReaction === 'like') message.likes -= 1;
+        if (prevReaction === 'dislike') message.dislikes -= 1;
+  
+        if (type === 'like') message.likes += 1;
+        if (type === 'dislike') message.dislikes += 1;
+  
+        message.reactions.set(user, type);
+      }
+  
+      const updated = await message.save();
+      res.json(updated);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Reaction update failed' });
+    }
+  };
+  
+
+export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer, getProjectDetails ,getCollaborationRequests,changeCollaborationRequestStatus,getCollaborationRequestsByDepartment,addMessage,updateLikes};

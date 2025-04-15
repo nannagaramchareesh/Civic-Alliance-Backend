@@ -9,6 +9,8 @@ import { getProjectDetails } from '../controllers/departmentHeadController.js';
 import { getCollaborationRequests } from '../controllers/departmentHeadController.js';
 import { changeCollaborationRequestStatus } from '../controllers/departmentHeadController.js';
 import { getCollaborationRequestsByDepartment } from '../controllers/departmentHeadController.js';
+import { addMessage } from '../controllers/departmentHeadController.js';
+import { updateLikes } from '../controllers/departmentHeadController.js';
 const departmentHeadRouter = express.Router();
 departmentHeadRouter.post('/signup', departmentHeadSignup);
 departmentHeadRouter.post('/login',departmentHeadLogin);
@@ -26,4 +28,8 @@ departmentHeadRouter.get('/collaborationRequests',departmentHeadAuth,getCollabor
 departmentHeadRouter.put('/projects/:projectId/collaboration',changeCollaborationRequestStatus);
 //viva
 departmentHeadRouter.get('/sentCollaborationRequests',departmentHeadAuth,getCollaborationRequestsByDepartment);
+
+departmentHeadRouter.patch('/:id/reaction',updateLikes);
+
+departmentHeadRouter.get('/addMessage',addMessage,);
 export default departmentHeadRouter;
