@@ -119,11 +119,23 @@ const normalizeCategory = (high,low) => {
 };
 
 
+const formatDate = (date) => {
+    date = new Date(date);
+
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0"); // getMonth() is zero-indexed
+    const year = date.getFullYear();
+
+    const formatted = `${day}/${month}/${year}`;
+    return formatted
+
+}
+
+
 const addProject = async (req, res) => {
     try {
 
-        const { projectName, description, location, startDate, endDate, resourcesNeeded, collaboratingDepartments, department, priority } = req.body;
-
+        const { projectName, description, location, startDate, endDate, resourcesNeeded, collaboratingDepartments, department, priority,category } = req.body;
         // Check if required fields are present
         if (!projectName || !description || !location || !startDate || !endDate) {
             return res.json({ success: false, message: "All fields are required" });
@@ -134,35 +146,41 @@ const addProject = async (req, res) => {
         const projectStart = new Date(startDate);
         const projectEnd = new Date(endDate);
         let conflictingProject = null;
-
+        
         // Check for conflicts based on priority and project timeline
+        let locationConflict = null;
         for (const proj of existingProjects) {
             const existingStart = new Date(proj.startDate);
             const existingEnd = new Date(proj.endDate);
-
             // Check if project has a higher priority, overlaps in the same location, and within the same time range
-            if (proj.priority > priority && existingStart < projectStart && existingEnd > projectStart) {
+         
+            if (proj.priority > priority && existingStart < projectStart && existingEnd < projectStart) {
                 conflictingProject = proj;
                 break;
             }
+
+            
 
             // Check if there are projects with the same location and overlapping time period
             if (proj.location === location && 
                 ((existingStart <= projectStart && existingEnd >= projectStart) || 
                 (existingStart <= projectEnd && existingEnd >= projectEnd) || 
                 (existingStart >= projectStart && existingEnd <= projectEnd))) {
-                    conflictingProject = proj;
+                    locationConflict = proj;
                     break;
             }
         }
-
         if (conflictingProject) {
-            const type = normalizeCategory(conflictingProject.department, department);
+            const type = normalizeCategory(conflictingProject.category, category);
             const conflictMessage = conflictMessages[type];
-            const high = conflictingProject.department;
-            const low = department;
+            const high = conflictingProject.category;
+            const low = category;
             const title = low + '-' + high + " Priority Conflict";
             return res.json({ success: false, message: conflictMessage, title });
+        }
+        if(locationConflict) {
+            const type = normalizeCategory(locationConflict.category, category);
+            return res.json({success:false,message:`A ${locationConflict.category} project is already planned at this location from ${formatDate(startDate)} to ${formatDate(endDate)}. Overlapping projects are not allowed. Please revise your plan`, title:'Location Conflict',});
         }
 
         // Prepare collaborating departments for request
@@ -184,7 +202,8 @@ const addProject = async (req, res) => {
             resourcesNeeded,
             priority: priorityval, // Assigning priority to project
             collaborationRequests: collaborationRequests,
-            createdBy: req.user.id // Department Head's ID
+            createdBy: req.user.id, // Department Head's ID
+            category:category
         });
      
         await newProject.save();
