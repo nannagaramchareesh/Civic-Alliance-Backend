@@ -7,7 +7,42 @@ import Officer from '../models/Officer.js';
 import sendMail from '../config/mailer.js';
 import Message from '../models/Message.js';
 import { request } from 'express';
-
+const conflictMessages = {
+    "sewage_pipeline": "Sewage should be laid before pipeline to avoid contamination or damage. Reschedule accordingly.",
+    "sewage_water": "Sewage lines must precede water to prevent cross-contamination risks.",
+    "sewage_electricity": "Sewage infrastructure was planned earlier. Constructing electricity afterward may disrupt the system.",
+    "sewage_road": "Sewage infrastructure was planned earlier. Constructing road afterward may disrupt the system.",
+    "sewage_pavement": "Sewage infrastructure was planned earlier. Constructing pavement afterward may disrupt the system.",
+    "sewage_landscaping": "Sewage infrastructure was planned earlier. Constructing landscaping afterward may disrupt the system.",
+    
+    "sewer_pipeline": "Sewer should be laid before pipeline to avoid contamination or damage. Reschedule accordingly.",
+    "sewer_water": "Sewer lines must precede water to prevent cross-contamination risks.",
+    "sewer_electricity": "Sewer infrastructure was planned earlier. Constructing electricity afterward may disrupt the system.",
+    "sewer_road": "Sewer infrastructure was planned earlier. Constructing road afterward may disrupt the system.",
+    "sewer_pavement": "Sewer infrastructure was planned earlier. Constructing pavement afterward may disrupt the system.",
+    "sewer_landscaping": "Sewer infrastructure was planned earlier. Constructing landscaping afterward may disrupt the system.",
+    
+    "pipeline_water": "Pipeline should be laid before water to ensure proper placement and avoid damage.",
+    "pipeline_electricity": "Pipeline infrastructure was planned earlier. Constructing electricity afterward may cause interference.",
+    "pipeline_road": "Pipeline should be laid before roads to avoid disturbing the surface once it's built.",
+    "pipeline_pavement": "Pipeline should be laid before pavement to ensure smooth future repairs and avoid damage.",
+    "pipeline_landscaping": "Pipeline should be laid before landscaping to avoid disturbing aesthetic work later.",
+    
+    "water_electricity": "Water supply systems should be completed before electricity infrastructure to avoid disruption during construction.",
+    "water_road": "Water infrastructure should be laid before roads to prevent surface disturbance later.",
+    "water_pavement": "Water infrastructure should be laid before pavement for smoother future maintenance.",
+    "water_landscaping": "Water infrastructure should be laid before landscaping to avoid disturbing aesthetic work later.",
+    
+    "electricity_road": "Electricity cabling should be laid before roads to avoid roadwork disruption.",
+    "electricity_pavement": "Electricity cabling should be laid before pavement to avoid disturbing footpaths later.",
+    "electricity_landscaping": "Electricity infrastructure should be laid before landscaping to avoid disturbing aesthetic work later.",
+    
+    "road_pavement": "Roadwork must be completed before pavement to avoid surface disturbances later.",
+    "road_landscaping": "Roadwork must be completed before landscaping to avoid disturbing aesthetics.",
+    
+    "pavement_landscaping": "Pavement should be completed before landscaping to ensure better alignment of aesthetic elements."
+  };
+  
 const departmentHeadSignup = async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -42,7 +77,6 @@ const departmentHeadSignup = async (req, res) => {
 const departmentHeadLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
-        console.log(email, password)
         let user = await User.findOne({ email }); // Check if it's a Department Head
         let role = "Department Head";
         if (!user) {
@@ -77,29 +111,58 @@ const departmentHeadLogin = async (req, res) => {
     }
 };
 
+const normalizeCategory = (high,low) => {
+    high = high.toLowerCase();
+    low = low.toLowerCase();
 
+    return low+"_" + high;
+};
 
 
 const addProject = async (req, res) => {
     try {
-        console.log("Received req body",req.body);
 
         const { projectName, description, location, startDate, endDate, resourcesNeeded, collaboratingDepartments, department, priority } = req.body;
 
-        // Validate required fields
+        // Check if required fields are present
         if (!projectName || !description || !location || !startDate || !endDate) {
             return res.json({ success: false, message: "All fields are required" });
         }
 
-        // Fetch all existing projects to compare priorities
         const existingProjects = await Project.find({});
-        console.log(existingProjects)
-        // console.log("hello")
-        // Check if any existing project has a lower priority
-        const lowerPriorityExists = existingProjects.some(proj => proj.priority < priority);
-        //checking priority
-        if (lowerPriorityExists) {
-            return res.json({ success: false, message: "A lower-priority project already exists. Cannot proceed." });
+
+        const projectStart = new Date(startDate);
+        const projectEnd = new Date(endDate);
+        let conflictingProject = null;
+
+        // Check for conflicts based on priority and project timeline
+        for (const proj of existingProjects) {
+            const existingStart = new Date(proj.startDate);
+            const existingEnd = new Date(proj.endDate);
+
+            // Check if project has a higher priority, overlaps in the same location, and within the same time range
+            if (proj.priority > priority && existingStart < projectStart && existingEnd > projectStart) {
+                conflictingProject = proj;
+                break;
+            }
+
+            // Check if there are projects with the same location and overlapping time period
+            if (proj.location === location && 
+                ((existingStart <= projectStart && existingEnd >= projectStart) || 
+                (existingStart <= projectEnd && existingEnd >= projectEnd) || 
+                (existingStart >= projectStart && existingEnd <= projectEnd))) {
+                    conflictingProject = proj;
+                    break;
+            }
+        }
+
+        if (conflictingProject) {
+            const type = normalizeCategory(conflictingProject.department, department);
+            const conflictMessage = conflictMessages[type];
+            const high = conflictingProject.department;
+            const low = department;
+            const title = low + '-' + high + " Priority Conflict";
+            return res.json({ success: false, message: conflictMessage, title });
         }
 
         // Prepare collaborating departments for request
@@ -109,9 +172,8 @@ const addProject = async (req, res) => {
             endDate: new Date(dept.endDate),
             status: "pending" // Default status is pending approval
         }));
-        // console.log(collaborationRequests)
-        // Create new project
-        const priorityval=Number(priority)
+       
+        const priorityval = Number(priority);
         const newProject = new Project({
             projectName,
             description,
@@ -120,12 +182,11 @@ const addProject = async (req, res) => {
             endDate,
             department,
             resourcesNeeded,
-            priority:priorityval, // Assigning priority to project
+            priority: priorityval, // Assigning priority to project
             collaborationRequests: collaborationRequests,
             createdBy: req.user.id // Department Head's ID
         });
-        // console.log(newProject)
-        // Save project
+     
         await newProject.save();
 
         res.json({ success: true, message: "Project created successfully", project: newProject });
@@ -136,9 +197,9 @@ const addProject = async (req, res) => {
     }
 };
 
+
 const viewProject = async (req, res) => {
     try {
-        console.log(req.user)
         const projects = await Project.find({});
         res.json({ success: true, projects })
     } catch (error) {
@@ -148,14 +209,12 @@ const viewProject = async (req, res) => {
 
 const addOfficer = async (req, res) => {
 
-    console.log("Hitting add officer")
     try {
         // const data=await Officer.create({req.body})
         const { officerData } = req.body;
         const { name, email, password } = officerData;
         const check = await Officer.findOne({ email });
         if (check) return res.json({ success: false, message: "Email already exists" })
-        console.log(name)
         const salt = await bcrypt.genSalt(10)
         const hashedPassword = await bcrypt.hash(password, salt);
         const data = await Officer.create({ name, email, hashedPassword });
@@ -200,7 +259,6 @@ const getCollaborationRequests = async (req, res) => {
             "collaborationRequests.name": departmentName,
             "collaborationRequests.status": status,
         });
-        console.log(projects)
         // Extract relevant collaboration requests
         const requests = projects.flatMap((project) =>
             project.collaborationRequests
@@ -225,16 +283,13 @@ const getCollaborationRequests = async (req, res) => {
 const changeCollaborationRequestStatus = async (req, res) => {
     try {
 
-        console.log("HITTING changestatus")
         const { projectId } = req.params;
         const { departmentName, status } = req.body; // Use departmentName instead of departmentId
 
         if (!departmentName || !status) {
             return res.status(400).json({ error: "Missing required fields" });
         }
-        console.log(projectId,departmentName)
 
-        console.log(departmentName)
         const project = await Project.findById(projectId);
         if (!project) {
             return res.status(404).json({ error: "Project not found" });
@@ -245,7 +300,6 @@ const changeCollaborationRequestStatus = async (req, res) => {
             (req) => req.name === departmentName // Match by department name
         );
 
-        console.log(requestIndex)
         if (requestIndex === -1) {
             return res.status(404).json({ error: "Collaboration request not found" });
         }
@@ -255,11 +309,11 @@ const changeCollaborationRequestStatus = async (req, res) => {
 
         // If approved, add department to the project's `collaboratingDepartments` array
         if (status === "approved") {
-            project.collaboratingDepartments.push({ 
-                name: departmentName, 
-                startDate: new Date(), 
-                endDate: null, 
-                status: "approved" 
+            project.collaboratingDepartments.push({
+                name: departmentName,
+                startDate: new Date(),
+                endDate: null,
+                status: "approved"
             });
         }
 
@@ -275,7 +329,6 @@ const changeCollaborationRequestStatus = async (req, res) => {
 
 const getCollaborationRequestsByDepartment = async (req, res) => {
     try {
-        console.log("HELLO sent")
         const departmentName = req.user.department; // Fetching department from authenticated user
 
         // Find projects created by the department that have sent collaboration requests
@@ -290,7 +343,6 @@ const getCollaborationRequestsByDepartment = async (req, res) => {
                 status: req.status,
             }))
         );
-        console.log(sentRequests)
         res.json({ success: true, requests: sentRequests });
     } catch (err) {
         console.error("Error fetching sent collaboration requests:", err);
@@ -299,45 +351,45 @@ const getCollaborationRequestsByDepartment = async (req, res) => {
 }
 
 
-const addMessage = async(req,res)=>{
-     try {
+const addMessage = async (req, res) => {
+    try {
         const messages = await Message.find().sort({ timestamp: 1 });
         res.json(messages);
-      } catch (error) {
+    } catch (error) {
         res.status(500).json({ error: 'Failed to fetch messages' });
-      }
+    }
 }
 
 const updateLikes = async (req, res) => {
     const { type, user } = req.body; // 'like' | 'dislike' | 'neutral', and user name
-  
-    try {
-      const message = await Message.findById(req.params.id);
-      if (!message) return res.status(404).json({ error: 'Message not found' });
-  
-      const prevReaction = message.reactions.get(user); // Get previous reaction
-  
-      if (type === 'neutral') {
-        if (prevReaction === 'like') message.likes -= 1;
-        if (prevReaction === 'dislike') message.dislikes -= 1;
-        message.reactions.delete(user);
-      } else if (type !== prevReaction) {
-        if (prevReaction === 'like') message.likes -= 1;
-        if (prevReaction === 'dislike') message.dislikes -= 1;
-  
-        if (type === 'like') message.likes += 1;
-        if (type === 'dislike') message.dislikes += 1;
-  
-        message.reactions.set(user, type);
-      }
-  
-      const updated = await message.save();
-      res.json(updated);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Reaction update failed' });
-    }
-  };
-  
 
-export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer, getProjectDetails ,getCollaborationRequests,changeCollaborationRequestStatus,getCollaborationRequestsByDepartment,addMessage,updateLikes};
+    try {
+        const message = await Message.findById(req.params.id);
+        if (!message) return res.status(404).json({ error: 'Message not found' });
+
+        const prevReaction = message.reactions.get(user); // Get previous reaction
+
+        if (type === 'neutral') {
+            if (prevReaction === 'like') message.likes -= 1;
+            if (prevReaction === 'dislike') message.dislikes -= 1;
+            message.reactions.delete(user);
+        } else if (type !== prevReaction) {
+            if (prevReaction === 'like') message.likes -= 1;
+            if (prevReaction === 'dislike') message.dislikes -= 1;
+
+            if (type === 'like') message.likes += 1;
+            if (type === 'dislike') message.dislikes += 1;
+
+            message.reactions.set(user, type);
+        }
+
+        const updated = await message.save();
+        res.json(updated);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Reaction update failed' });
+    }
+};
+
+
+export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer, getProjectDetails, getCollaborationRequests, changeCollaborationRequestStatus, getCollaborationRequestsByDepartment, addMessage, updateLikes };
