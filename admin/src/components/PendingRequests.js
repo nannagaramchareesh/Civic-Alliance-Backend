@@ -1,46 +1,55 @@
 import React, { useEffect, useState } from "react";
 import { backendUrl } from "../App";
 import { toast } from "react-toastify";
-import axios from 'axios'
+import axios from 'axios';
+
 const PendingRequests = () => {
   const [requests, setRequests] = useState([]);
+  const [actionLoading, setActionLoading] = useState(null); // To track which user is being updated
+
   const fetchRequests = async () => {
     try {
-      const response = await axios.get(`${backendUrl}/api/admin/pending-requests`, { 
-        headers: { "auth-token":localStorage.getItem('token')}  // Fixed the header syntax
-    });
+      const response = await axios.get(`${backendUrl}/api/admin/pending-requests`, {
+        headers: { "auth-token": localStorage.getItem('token') }
+      });
       if (response.data.success) {
-        setRequests(response.data.PendingRequests)
-      }
-      else {
-        toast.error(response.data.message)
+        setRequests(response.data.PendingRequests);
+      } else {
+        toast.error(response.data.message);
       }
     } catch (error) {
-      toast.error(error.message)
+      toast.error(error.message);
     }
-  }
+  };
+
   const handleAction = async (id, status) => {
+    setActionLoading(id);
     try {
-      const response = await axios.post(`${backendUrl}/api/admin/update-status`, { userId: id, status },{headers:{"auth-token":localStorage.getItem('token')}})
+      const response = await axios.post(`${backendUrl}/api/admin/update-status`, 
+        { userId: id, status },
+        { headers: { "auth-token": localStorage.getItem('token') } }
+      );
       if (response.data.success) {
-        toast.success(response.data.message)
+        toast.success(response.data.message);
+      } else {
+        toast.error(response.data.message);
       }
-      else {
-        toast.error(response.data.message)
-      }
-      fetchRequests();
+      await fetchRequests();
     } catch (error) {
-      toast.error(error.message)
+      toast.error(error.message);
+    } finally {
+      setActionLoading(null);
     }
-  }
+  };
+
   useEffect(() => {
-    fetchRequests()
+    fetchRequests();
     const interval = setInterval(() => {
       fetchRequests();
     }, 5000);
-
     return () => clearInterval(interval);
-  }, [])
+  }, []);
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-4">Pending Signup Requests</h2>
@@ -60,16 +69,26 @@ const PendingRequests = () => {
                 <td className="py-2 px-4">{item.department}</td>
                 <td className="py-2 px-4 text-center">
                   <button
-                    className="bg-green-500 text-white px-4 py-1 rounded-md mr-2 hover:bg-green-600 transition"
+                    className="bg-green-500 text-white px-4 py-1 rounded-md mr-2 hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() => handleAction(item._id, "Approved")}
+                    disabled={actionLoading === item._id}
                   >
-                    Approve
+                    {actionLoading === item._id ? (
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+                    ) : (
+                      "Approve"
+                    )}
                   </button>
                   <button
-                    className="bg-red-500 text-white px-4 py-1 rounded-md hover:bg-red-600 transition"
+                    className="bg-red-500 text-white px-4 py-1 rounded-md hover:bg-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() => handleAction(item._id, "Rejected")}
+                    disabled={actionLoading === item._id}
                   >
-                    Reject
+                    {actionLoading === item._id ? (
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+                    ) : (
+                      "Reject"
+                    )}
                   </button>
                 </td>
               </tr>

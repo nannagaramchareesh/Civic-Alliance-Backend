@@ -6,8 +6,8 @@ import { toast } from "react-toastify";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
+  const [loadingUserId, setLoadingUserId] = useState(null); // 👈 New loading state
 
-  // Fetch Users from Backend
   const fetchUsers = async () => {
     try {
       const response = await axios.get(`${backendUrl}/api/admin/getallusers`);
@@ -25,8 +25,8 @@ const UserManagement = () => {
     fetchUsers();
   }, []);
 
-  // Handle User Status Change
   const handleStatusChange = async (id, status) => {
+    setLoadingUserId(id); // 👈 Start loading
     try {
       const response = await axios.post(`${backendUrl}/api/admin/changeStatus`, {
         userId: id,
@@ -34,22 +34,20 @@ const UserManagement = () => {
       });
 
       if (response.data.success) {
-        toast.success(`User ${status==="Approved"?"Activated":"Deactivated"} successfully!`);
+        toast.success(`User ${status === "Approved" ? "Activated" : "Deactivated"} successfully!`);
         fetchUsers();
       } else {
-        if(status === "Approved"){
-          toast.error("Error Activating the user");
-        }
-        else{
-          toast.error("Error Deactivating the user");
-        }
+        toast.error(
+          status === "Approved" ? "Error Activating the user" : "Error Deactivating the user"
+        );
       }
     } catch (error) {
       toast.error(`Error ${status.toLowerCase()} user`);
+    } finally {
+      setLoadingUserId(null); // 👈 Stop loading
     }
   };
 
-  // Handle Delete All Users
   const handleDelete = async () => {
     try {
       const response = await axios.delete(`${backendUrl}/api/admin/deleteUsers`, {
@@ -82,7 +80,7 @@ const UserManagement = () => {
           </tr>
         </thead>
         <tbody>
-          {users.map(user => (
+          {users.map((user) => (
             <tr key={user._id} className="border-b">
               <td className="py-3 px-4">{user.name}</td>
               <td className="py-3 px-4">{user.department}</td>
@@ -96,26 +94,34 @@ const UserManagement = () => {
               </td>
               <td className="py-3 px-4 text-center flex gap-2 justify-center">
                 <button
-                  className={`px-4 py-2 rounded-md text-white font-semibold transition ${
-                    user.status === "Approved"
+                  className={`px-4 py-2 rounded-md text-white font-semibold transition flex items-center justify-center ${
+                    user.status === "Approved" || loadingUserId === user._id
                       ? "bg-gray-400 cursor-not-allowed"
                       : "bg-green-500 hover:bg-green-600"
                   }`}
                   onClick={() => handleStatusChange(user._id, "Approved")}
-                  disabled={user.status === "Approved"}
+                  disabled={user.status === "Approved" || loadingUserId === user._id}
                 >
-                  Activate
+                  {loadingUserId === user._id ? (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+                  ) : (
+                    "Activate"
+                  )}
                 </button>
                 <button
-                  className={`px-4 py-2 rounded-md text-white font-semibold transition ${
-                    user.status === "Rejected"
+                  className={`px-4 py-2 rounded-md text-white font-semibold transition flex items-center justify-center ${
+                    user.status === "Rejected" || loadingUserId === user._id
                       ? "bg-gray-400 cursor-not-allowed"
                       : "bg-red-500 hover:bg-red-600"
                   }`}
                   onClick={() => handleStatusChange(user._id, "Rejected")}
-                  disabled={user.status === "Rejected"}
+                  disabled={user.status === "Rejected" || loadingUserId === user._id}
                 >
-                  Deactivate
+                  {loadingUserId === user._id ? (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+                  ) : (
+                    "Deactivate"
+                  )}
                 </button>
               </td>
             </tr>
