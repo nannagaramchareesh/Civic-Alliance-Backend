@@ -77,10 +77,11 @@ const departmentHeadSignup = async (req, res) => {
 const departmentHeadLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
-        let user = await User.findOne({ email }); // Check if it's a Department Head
+        let user = await User.findOne({ email });
         let role = "Department Head";
+
         if (!user) {
-            user = await Officer.findOne({ email }); // If not found, check if it's an Officer
+            user = await Officer.findOne({ email });
             role = "Officer";
         }
 
@@ -88,21 +89,20 @@ const departmentHeadLogin = async (req, res) => {
             return res.json({ success: false, message: "Invalid email or password" });
         }
 
-        // Check if Department Head is approved
         if (role === "Department Head" && user.status === "Pending") {
             return res.json({ success: false, message: "Your account is not approved yet" });
         }
+
         if (role === "Department Head" && user.status === "Rejected") {
             return res.json({ success: false, message: "Your account is rejected" });
         }
 
-        // Verify Password
+        // Verify password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.json({ success: false, message: "Invalid email or password" });
         }
 
-        // Generate JWT token with user ID and role
         const token = jwt.sign({ id: user._id, role }, process.env.JWT_SECRET);
 
         res.json({ success: true, token, user, role });
@@ -110,6 +110,7 @@ const departmentHeadLogin = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 };
+
 
 const normalizeCategory = (high,low) => {
     high = high.toLowerCase();
@@ -227,27 +228,33 @@ const viewProject = async (req, res) => {
 }
 
 const addOfficer = async (req, res) => {
-
     try {
-        // const data=await Officer.create({req.body})
         const { officerData } = req.body;
         const { name, email, password } = officerData;
-        const check = await Officer.findOne({ email });
-        if (check) return res.json({ success: false, message: "Email already exists" })
-        const salt = await bcrypt.genSalt(10)
-        const hashedPassword = await bcrypt.hash(password, salt);
-        const data = await Officer.create({ name, email, hashedPassword });
-        const emailSubject = "👮 Your Officer Account Has Been Created!";
 
+        // Check if officer already exists
+        const check = await Officer.findOne({ email });
+        if (check) return res.json({ success: false, message: "Email already exists" });
+
+        // Hash the password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // Save officer with proper password field
+        const data = await Officer.create({ name, email, password: hashedPassword });
+
+        // Email content
+        const emailSubject = "👮 Your Officer Account Has Been Created!";
         const emailBody = `Dear ${name},\n\nWelcome to the system! Your Officer account has been successfully created.\n\n🔹 **Login Details**:\n📧 Email: ${email}\n🔑 Password: ${password}\n\n🚀 You can log in here: ${process.env.FRONTEND_URL}/login\n\nPlease change your password after logging in.\n\nBest Regards,\nAdmin Team`;
 
         await sendMail(email, emailSubject, emailBody);
 
-        res.json({ success: true, message: "officer added successfully" })
+        res.json({ success: true, message: "Officer added successfully" });
     } catch (error) {
-        res.json({ success: false, message: error.message })
+        res.json({ success: false, message: error.message });
     }
-}
+};
+
 
 // Get project details by ID
 const getProjectDetails = async (req, res) => {
