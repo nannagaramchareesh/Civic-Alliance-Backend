@@ -11,8 +11,10 @@ import { changeCollaborationRequestStatus } from '../controllers/departmentHeadC
 import { getCollaborationRequestsByDepartment } from '../controllers/departmentHeadController.js';
 import { addMessage } from '../controllers/departmentHeadController.js';
 import { updateLikes } from '../controllers/departmentHeadController.js';
+import { projectOverview } from '../controllers/departmentHeadController.js';
 const departmentHeadRouter = express.Router();
 departmentHeadRouter.post('/signup', departmentHeadSignup);
+
 departmentHeadRouter.post('/login',departmentHeadLogin);
 
 departmentHeadRouter.post('/addproject',departmentHeadAuth,addProject)
@@ -31,5 +33,7 @@ departmentHeadRouter.get('/sentCollaborationRequests',departmentHeadAuth,getColl
 
 departmentHeadRouter.patch('/:id/reaction',updateLikes);
 
-departmentHeadRouter.get('/addMessage',addMessage,);
+departmentHeadRouter.get('/addMessage',addMessage);
+
+departmentHeadRouter.get('/overview',projectOverview);
 export default departmentHeadRouter;

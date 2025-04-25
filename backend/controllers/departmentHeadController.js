@@ -6,7 +6,6 @@ import Project from '../models/Project.js';
 import Officer from '../models/Officer.js';
 import sendMail from '../config/mailer.js';
 import Message from '../models/Message.js';
-import { request } from 'express';
 const conflictMessages = {
     "sewage_pipeline": "Sewage should be laid before pipeline to avoid contamination or damage. Reschedule accordingly.",
     "sewage_water": "Sewage lines must precede water to prevent cross-contamination risks.",
@@ -74,12 +73,16 @@ const departmentHeadSignup = async (req, res) => {
 
 
 
-const departmentHeadLogin = async (req, res) => {
+
+const departmentHeadLogin  = async (req, res) => {
     try {
         const { email, password } = req.body;
+
+        // Check in User (Department Head)
         let user = await User.findOne({ email });
         let role = "Department Head";
 
+        // If not found, check in Officer
         if (!user) {
             user = await Officer.findOne({ email });
             role = "Officer";
@@ -89,27 +92,39 @@ const departmentHeadLogin = async (req, res) => {
             return res.json({ success: false, message: "Invalid email or password" });
         }
 
-        if (role === "Department Head" && user.status === "Pending") {
+        // Check account status (for both roles)
+        if (user.status === "Pending") {
             return res.json({ success: false, message: "Your account is not approved yet" });
         }
 
-        if (role === "Department Head" && user.status === "Rejected") {
-            return res.json({ success: false, message: "Your account is rejected" });
+        if (user.status === "Rejected") {
+            return res.json({ success: false, message: "Your account has been rejected" });
         }
 
-        // Verify password
+        // Compare password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.json({ success: false, message: "Invalid email or password" });
         }
 
-        const token = jwt.sign({ id: user._id, role }, process.env.JWT_SECRET);
+        // Generate token
+        const token = jwt.sign({ id: user._id, role }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-        res.json({ success: true, token, user, role });
+        // Success response
+        res.json({
+            success: true,
+            token,
+            user,
+            role
+        });
+
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        console.error("Login error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
     }
 };
+
+
 
 
 const normalizeCategory = (high,low) => {
@@ -229,7 +244,7 @@ const viewProject = async (req, res) => {
 
 const addOfficer = async (req, res) => {
     try {
-        const { officerData } = req.body;
+        const { officerData ,department} = req.body;
         const { name, email, password } = officerData;
 
         // Check if officer already exists
@@ -241,7 +256,7 @@ const addOfficer = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         // Save officer with proper password field
-        const data = await Officer.create({ name, email, password: hashedPassword });
+        const data = await Officer.create({ name, email, password: hashedPassword ,department});
 
         // Email content
         const emailSubject = "👮 Your Officer Account Has Been Created!";
@@ -418,4 +433,32 @@ const updateLikes = async (req, res) => {
 };
 
 
-export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer, getProjectDetails, getCollaborationRequests, changeCollaborationRequestStatus, getCollaborationRequestsByDepartment, addMessage, updateLikes };
+const projectOverview = async (req,res)=>{
+    try {
+        const totalProjects = await Project.countDocuments();
+        const ongoingProjects = await Project.countDocuments({ status: "ongoing" });
+        const completedProjects = await Project.countDocuments({ status: "completed" });
+
+        const totalOfficers = await Officer.countDocuments();
+        const departments = await User.find();
+
+        const departmentWorkload = await Promise.all(
+            departments.map(async (dept) => {
+                const count = await Project.countDocuments({ department: dept._id });
+                return { name: dept.name, count };
+            })
+        );
+
+        res.json({success:true,
+            totalProjects,
+            ongoingProjects,
+            completedProjects,
+            totalOfficers,
+            departmentWorkload,
+        });
+    } catch (err) {
+        res.json({success:false, message: err.message });
+    }
+}
+
+export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer, getProjectDetails, getCollaborationRequests, changeCollaborationRequestStatus, getCollaborationRequestsByDepartment, addMessage, updateLikes,projectOverview };
