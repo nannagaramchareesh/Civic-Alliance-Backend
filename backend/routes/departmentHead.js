@@ -1,5 +1,5 @@
 import express from 'express';
-import { departmentHeadSignup } from '../controllers/departmentHeadController.js';
+import { departmentHeadSignup, fetchOfficers } from '../controllers/departmentHeadController.js';
 import { departmentHeadLogin } from '../controllers/departmentHeadController.js';
 import { addOfficer } from '../controllers/departmentHeadController.js';
 import {addProject} from '../controllers/departmentHeadController.js'
@@ -14,6 +14,10 @@ import { updateLikes } from '../controllers/departmentHeadController.js';
 import { projectOverview } from '../controllers/departmentHeadController.js';
 import { viewPendingProjects } from '../controllers/departmentHeadController.js';
 import { approveProject } from '../controllers/departmentHeadController.js';
+import { createTask } from '../controllers/departmentHeadController.js';
+import { updateTask } from '../controllers/departmentHeadController.js';
+import { deleteTask } from '../controllers/departmentHeadController.js';
+import { getTasks } from '../controllers/departmentHeadController.js';
 const departmentHeadRouter = express.Router();
 departmentHeadRouter.post('/signup', departmentHeadSignup);
 
@@ -42,4 +46,14 @@ departmentHeadRouter.get('/overview',projectOverview);
 departmentHeadRouter.get('/viewpendingprojects',viewPendingProjects);
 
 departmentHeadRouter.patch('/approve',approveProject);
+
+departmentHeadRouter.post('/createtask',createTask);
+
+departmentHeadRouter.put('/tasks/:taskId/status',updateTask);
+
+departmentHeadRouter.delete('/deletetask',deleteTask);
+
+departmentHeadRouter.get('/gettasks/:projectId',getTasks);
+
+departmentHeadRouter.post('/fetchofficers',fetchOfficers);
 export default departmentHeadRouter;

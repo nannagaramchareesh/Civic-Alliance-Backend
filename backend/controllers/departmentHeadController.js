@@ -4,9 +4,9 @@ import validator from 'validator';
 import jwt from 'jsonwebtoken';
 import Project from '../models/Project.js';
 import Officer from '../models/Officer.js';
+import Task from '../models/Task.js'
 import sendMail from '../config/mailer.js';
 import Message from '../models/Message.js';
-import user from '../models/user.js';
 const conflictMessages = {
     "sewage_pipeline": "Sewage should be laid before pipeline to avoid contamination or damage. Reschedule accordingly.",
     "sewage_water": "Sewage lines must precede water to prevent cross-contamination risks.",
@@ -257,11 +257,11 @@ const addOfficer = async (req, res) => {
         // Save officer with proper password field
         const data = await Officer.create({ name, email, password: hashedPassword ,department});
 
-        // Email content
-        const emailSubject = "👮 Your Officer Account Has Been Created!";
-        const emailBody = `Dear ${name},\n\nWelcome to the system! Your Officer account has been successfully created.\n\n🔹 **Login Details**:\n📧 Email: ${email}\n🔑 Password: ${password}\n\n🚀 You can log in here: ${process.env.FRONTEND_URL}/login\n\nPlease change your password after logging in.\n\nBest Regards,\nAdmin Team`;
+        // // Email content
+        // const emailSubject = "👮 Your Officer Account Has Been Created!";
+        // const emailBody = `Dear ${name},\n\nWelcome to the system! Your Officer account has been successfully created.\n\n🔹 **Login Details**:\n📧 Email: ${email}\n🔑 Password: ${password}\n\n🚀 You can log in here: ${process.env.FRONTEND_URL}/login\n\nPlease change your password after logging in.\n\nBest Regards,\nAdmin Team`;
 
-        await sendMail(email, emailSubject, emailBody);
+        // await sendMail(email, emailSubject, emailBody);
 
         res.json({ success: true, message: "Officer added successfully" });
     } catch (error) {
@@ -492,6 +492,88 @@ const approveProject = async (req, res) => {
       res.status(500).json({ success: false, message: error.message });
     }
   };
-  
 
-export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer, getProjectDetails, getCollaborationRequests, changeCollaborationRequestStatus, getCollaborationRequestsByDepartment, addMessage, updateLikes,projectOverview,viewPendingProjects,approveProject }; 
+  const getTasks = async(req,res)=>{
+    try {
+        const tasks = await Task.find({ projectId: req.params.projectId });
+        res.json(tasks);
+      } catch (err) {
+        res.status(400).json({ error: err.message });
+      }
+  }
+  
+  const createTask = async(req,res)=>{
+    const { title, description, startDate, endDate, assignedTo,projectId,createdBy } = req.body;
+    
+    try {
+        const task = new Task({
+            title,
+            description,
+            startDate,
+            endDate,
+            status: 'Pending',
+            createdBy,
+            projectId,
+            assignedTo, // Assigning the officer's ID
+        });
+
+        await task.save();
+        res.json({success:true,task})
+    } catch (error) {
+        console.error(error);
+        res.json({success:false, error: 'Failed to create task' });
+    }
+  }
+
+  const updateTask = async(req,res)=>{
+    try {
+        const { status } = req.body;
+        const { taskId } = req.params;
+
+        const validStatuses = ["Pending", "In Progress", "Completed"];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ error: "Invalid status value" });
+        }
+
+        const task = await Task.findById(taskId);
+        if (!task) {
+            return res.status(404).json({ error: "Task not found" });
+        }
+
+        task.status = status;
+        await task.save();
+
+        res.json({ message: "Task status updated successfully", task });
+    } catch (error) {
+        console.error("Error updating task status:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+
+  const deleteTask = async(req,res)=>{
+    try {
+        await Task.findByIdAndDelete(req.params.taskId);
+        res.json({ message: "Task deleted" });
+      } catch (err) {
+        res.status(400).json({ error: err.message });
+      }
+  }
+
+
+  const fetchOfficers = async(req,res)=>{
+    try {
+        const { department } = req.body; // Extract departmentId from the request body
+
+        
+        // Fetch all officers of the given department
+        const officers = await Officer.find({ department });
+
+        // Return the officers
+        res.json({success:true,officers});
+    } catch (error) {
+        console.error('Error fetching officers:', error);
+        res.status(500).json({ success:false,message: 'Server error' });
+    }
+  }
+
+export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer, getProjectDetails, getCollaborationRequests, changeCollaborationRequestStatus, getCollaborationRequestsByDepartment, addMessage, updateLikes,projectOverview,viewPendingProjects,approveProject,createTask,updateTask,deleteTask,getTasks,fetchOfficers }; 
