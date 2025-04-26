@@ -16,7 +16,8 @@ const projectSchema = new mongoose.Schema({
       name: { type: String, required: true }, // Department requesting collaboration
       startDate: { type: Date, required: true },
       endDate: { type: Date, required: true },
-      status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" }
+      status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+      message: { type: String, default: "" }
     }
   ],
   status: {

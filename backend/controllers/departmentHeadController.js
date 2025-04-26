@@ -324,9 +324,9 @@ const changeCollaborationRequestStatus = async (req, res) => {
     try {
 
         const { projectId } = req.params;
-        const { departmentName, status } = req.body; // Use departmentName instead of departmentId
-
-        if (!departmentName || !status) {
+        const { departmentName, status ,message} = req.body; // Use departmentName instead of departmentId
+        console.log(message);
+        if (!departmentName || !status||!message) {
             return res.status(400).json({ error: "Missing required fields" });
         }
 
@@ -346,7 +346,7 @@ const changeCollaborationRequestStatus = async (req, res) => {
 
         // Update request status
         project.collaborationRequests[requestIndex].status = status;
-
+        project.collaborationRequests[requestIndex].message = message;
         // If approved, add department to the project's `collaboratingDepartments` array
         if (status === "approved") {
             project.collaboratingDepartments.push({
@@ -359,7 +359,7 @@ const changeCollaborationRequestStatus = async (req, res) => {
 
         await project.save();
 
-        res.json({ message: `Collaboration request ${status} successfully`, departmentName, project });
+        res.json({ message: `Collaboration request ${status} successfully`, departmentName, project ,message});
 
     } catch (error) {
         console.error(error);
@@ -381,6 +381,7 @@ const getCollaborationRequestsByDepartment = async (req, res) => {
                 departmentRequested: req.name,
                 requestDate: project.createdAt,
                 status: req.status,
+                message:req.message
             }))
         );
         res.json({ success: true, requests: sentRequests });
