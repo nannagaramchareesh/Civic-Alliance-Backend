@@ -18,7 +18,7 @@ const departmentHeadAuth = async (req, res, next) => {
             return res.status(403).json({ success: false, message: "Access denied. User not approved or does not exist." });
         }
 
-        req.user = user; // Attach user to request object
+        req.user = user; 
         next();
     } catch (error) {
         res.json({ success: false, message: "Invalid or expired token" });

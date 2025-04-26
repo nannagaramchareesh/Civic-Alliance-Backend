@@ -6,6 +6,7 @@ import Project from '../models/Project.js';
 import Officer from '../models/Officer.js';
 import sendMail from '../config/mailer.js';
 import Message from '../models/Message.js';
+import user from '../models/user.js';
 const conflictMessages = {
     "sewage_pipeline": "Sewage should be laid before pipeline to avoid contamination or damage. Reschedule accordingly.",
     "sewage_water": "Sewage lines must precede water to prevent cross-contamination risks.",
@@ -150,15 +151,14 @@ const formatDate = (date) => {
 
 const addProject = async (req, res) => {
     try {
-
-        const { projectName, description, location, startDate, endDate, resourcesNeeded, collaboratingDepartments, department, priority,category } = req.body;
+        console.log(req.body)
+        const { projectName, description, location, startDate, endDate, resourcesNeeded, collaboratingDepartments, department, priority,category } = req.body.updatedProjectData;
         // Check if required fields are present
-        if (!projectName || !description || !location || !startDate || !endDate) {
-            return res.json({ success: false, message: "All fields are required" });
-        }
-
+        console.log(collaboratingDepartments)
         const existingProjects = await Project.find({});
-
+        const role = req.body.role;
+        let status = "pending";
+        if(role==='Department Head')status = "approved";
         const projectStart = new Date(startDate);
         const projectEnd = new Date(endDate);
         let conflictingProject = null;
@@ -198,7 +198,6 @@ const addProject = async (req, res) => {
             const type = normalizeCategory(locationConflict.category, category);
             return res.json({success:false,message:`A ${locationConflict.category} project is already planned at this location from ${formatDate(startDate)} to ${formatDate(endDate)}. Overlapping projects are not allowed. Please revise your plan`, title:'Location Conflict',});
         }
-
         // Prepare collaborating departments for request
         const collaborationRequests = collaboratingDepartments.map((dept) => ({
             name: dept.name,
@@ -217,9 +216,9 @@ const addProject = async (req, res) => {
             department,
             resourcesNeeded,
             priority: priorityval, // Assigning priority to project
-            collaborationRequests: collaborationRequests,
-            createdBy: req.user.id, // Department Head's ID
-            category:category
+            collaborationRequests: collaborationRequests,   
+            category:category,
+            status
         });
      
         await newProject.save();
@@ -235,7 +234,7 @@ const addProject = async (req, res) => {
 
 const viewProject = async (req, res) => {
     try {
-        const projects = await Project.find({});
+        const projects = await Project.find({ status: "approved" });
         res.json({ success: true, projects })
     } catch (error) {
         res.json({ success: false, message: error.message })
@@ -292,9 +291,9 @@ const getProjectDetails = async (req, res) => {
 
 const getCollaborationRequests = async (req, res) => {
     try {
-        const departmentName = req.user.department; // Assuming department is stored in token
+        const departmentName = req.body.department; // Assuming department is stored in token
         const { status } = req.query;  // Use req.query instead of req.body
-
+        console.log(departmentName)
         // Find projects where this department is requested for collaboration with the given status
         const projects = await Project.find({
             "collaborationRequests.name": departmentName,
@@ -370,8 +369,8 @@ const changeCollaborationRequestStatus = async (req, res) => {
 
 const getCollaborationRequestsByDepartment = async (req, res) => {
     try {
-        const departmentName = req.user.department; // Fetching department from authenticated user
-
+        const departmentName = req.body.department// Fetching department from authenticated user
+    
         // Find projects created by the department that have sent collaboration requests
         const projects = await Project.find({ department: departmentName });
         // Extract sent collaboration requests
@@ -461,4 +460,37 @@ const projectOverview = async (req,res)=>{
     }
 }
 
-export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer, getProjectDetails, getCollaborationRequests, changeCollaborationRequestStatus, getCollaborationRequestsByDepartment, addMessage, updateLikes,projectOverview };
+
+
+const viewPendingProjects = async(req,res)=>{
+    try {
+        const pendingProjects = await Project.find({ status: "pending" });
+        res.json({ success: true, projects: pendingProjects });
+        
+      } catch (error) {
+        res.json({ success: false, message: error.message });
+      }
+}
+
+const approveProject = async (req, res) => {
+    try {
+
+      const { projectId, action } = req.body; // action = 'approve' or 'reject'
+      const project = await Project.findById(projectId);
+  
+      if (!project) {
+        return res.status(404).json({ success: false, message: "Project not found" });
+      }
+  
+      project.status = action === "approve" ? "approved" : "rejected";
+      await project.save();
+  
+      res.json({ success: true, message: `Project ${action}d successfully` });
+      
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
+  
+
+export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer, getProjectDetails, getCollaborationRequests, changeCollaborationRequestStatus, getCollaborationRequestsByDepartment, addMessage, updateLikes,projectOverview,viewPendingProjects,approveProject }; 

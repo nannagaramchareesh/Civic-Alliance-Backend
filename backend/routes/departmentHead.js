@@ -12,28 +12,34 @@ import { getCollaborationRequestsByDepartment } from '../controllers/departmentH
 import { addMessage } from '../controllers/departmentHeadController.js';
 import { updateLikes } from '../controllers/departmentHeadController.js';
 import { projectOverview } from '../controllers/departmentHeadController.js';
+import { viewPendingProjects } from '../controllers/departmentHeadController.js';
+import { approveProject } from '../controllers/departmentHeadController.js';
 const departmentHeadRouter = express.Router();
 departmentHeadRouter.post('/signup', departmentHeadSignup);
 
 departmentHeadRouter.post('/login',departmentHeadLogin);
 
-departmentHeadRouter.post('/addproject',departmentHeadAuth,addProject)
+departmentHeadRouter.post('/addproject',addProject)
 
-departmentHeadRouter.get('/viewprojects',departmentHeadAuth,viewProject)
+departmentHeadRouter.get('/viewprojects',viewProject)
 
-departmentHeadRouter.post('/addOfficer',departmentHeadAuth,addOfficer);
+departmentHeadRouter.post('/addOfficer',addOfficer);
 
-departmentHeadRouter.get('/projects/:id',departmentHeadAuth,getProjectDetails);
+departmentHeadRouter.get('/projects/:id',getProjectDetails);
 
-departmentHeadRouter.get('/collaborationRequests',departmentHeadAuth,getCollaborationRequests);
+departmentHeadRouter.post('/collaborationRequests',getCollaborationRequests);
 
 departmentHeadRouter.put('/projects/:projectId/collaboration',changeCollaborationRequestStatus);
-//viva
-departmentHeadRouter.get('/sentCollaborationRequests',departmentHeadAuth,getCollaborationRequestsByDepartment);
+
+departmentHeadRouter.post('/sentCollaborationRequests',getCollaborationRequestsByDepartment);
 
 departmentHeadRouter.patch('/:id/reaction',updateLikes);
 
 departmentHeadRouter.get('/addMessage',addMessage);
 
 departmentHeadRouter.get('/overview',projectOverview);
+
+departmentHeadRouter.get('/viewpendingprojects',viewPendingProjects);
+
+departmentHeadRouter.patch('/approve',approveProject);
 export default departmentHeadRouter;

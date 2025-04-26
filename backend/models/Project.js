@@ -19,8 +19,10 @@ const projectSchema = new mongoose.Schema({
       status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" }
     }
   ],
-  status: { type: String, enum: ["ongoing", "completed", "upcomming"], default: "ongoing" },
-
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+  },  
   // Approved Collaborating Departments
   collaboratingDepartments: [
     {
@@ -30,7 +32,6 @@ const projectSchema = new mongoose.Schema({
       status: { type: String, enum: ["approved",'pending'], default: "approved" }
     }
   ],
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "departmentHeadModel", required: true }, // Reference to User
   createdAt: { type: Date, default: Date.now }
 });
 
