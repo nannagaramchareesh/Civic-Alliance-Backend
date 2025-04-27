@@ -11,6 +11,7 @@ const projectSchema = new mongoose.Schema({
   resourcesNeeded: { type: String },
   priority: {type:Number,required:true},
   interDepartmental: { type: Boolean, default: false },
+  // isCompleted:{type:Boolean,deafult:false},
   collaborationRequests: [
     {
       name: { type: String, required: true }, // Department requesting collaboration
@@ -31,6 +32,7 @@ const projectSchema = new mongoose.Schema({
       startDate: { type: Date, required: true },
       endDate: { type: Date }, // Nullable, filled when collaboration ends
       status: { type: String, enum: ["approved",'pending'], default: "approved" }
+
     }
   ],
   createdAt: { type: Date, default: Date.now }

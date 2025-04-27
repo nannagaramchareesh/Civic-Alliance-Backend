@@ -576,4 +576,14 @@ const approveProject = async (req, res) => {
     }
   }
 
+
+
+//   const isCompleted=async(req,res)=>{
+//     try{
+//         const project= ;
+//     }catch{
+
+//     }
+//   }
+
 export { departmentHeadSignup, departmentHeadLogin, addProject, viewProject, addOfficer, getProjectDetails, getCollaborationRequests, changeCollaborationRequestStatus, getCollaborationRequestsByDepartment, addMessage, updateLikes,projectOverview,viewPendingProjects,approveProject,createTask,updateTask,deleteTask,getTasks,fetchOfficers }; 
